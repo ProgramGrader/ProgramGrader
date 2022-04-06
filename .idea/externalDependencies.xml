@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ExternalDependencies">
+    <plugin id="Docker" />
+    <plugin id="NodeJS" />
+    <plugin id="String Manipulation" />
+    <plugin id="aws.toolkit" />
+    <plugin id="com.andrey4623.rainbowcsv" />
+    <plugin id="com.github.exidcuter.dockerregistryexplorer" />
+    <plugin id="com.godwin.json.parser" />
+    <plugin id="com.intellij.css" />
+    <plugin id="com.intellij.grpc" />
+    <plugin id="com.protobuf.free.gen.plugin.GenProtobuf" />
+    <plugin id="intellij.prettierJS" />
+    <plugin id="net.seesharpsoft.intellij.plugins.csv" />
+    <plugin id="org.intellij.plugins.hcl" />
+    <plugin id="org.jetbrains.plugins.vue" />
+    <plugin id="ru.adelf.idea.dotenv" />
+    <plugin id="tslint" />
+    <plugin id="zielu.gittoolbox" />
+  </component>
+</project>
