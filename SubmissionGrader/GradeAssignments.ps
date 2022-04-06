@@ -1,0 +1,170 @@
+
+# REPLACE WITH GO SCRIPT THAT CAN DEAL WITH SIGTERM
+
+
+function GetEnvVar{
+    param(
+        [ValidateNotNullOrEmpty()]
+        [string]$EnvName
+    )
+
+    $return = [System.Environment]::GetEnvironmentVariables()[$EnvName]
+
+    if ($null -eq $repoName){
+        Write-Error "$EnvName Env variable was not Found."
+        exit(1)
+    }
+
+    return $return
+
+}
+
+
+# Get Secert Environment Variable
+$GHtoken = GetEnvVar -EnvName "GITHUBTOKEN"
+
+# Get Environment Variables
+$language = GetEnvVar -EnvName "LANGUAGE"
+$repoName = GetEnvVar -EnvName "REPOFULLNAME"
+$TeacherUnitTestsEnabled = GetEnvVar -EnvName "TEACHER_UNIT_TESTS"
+$CourseType =  GetEnvVar -EnvName "COURSE_TYPE"
+$AssignmentName =  GetEnvVar -EnvName "ASSIGNMENT_NAME"
+$GradeDocsEnabled =  GetEnvVar -EnvName "GRADE_DOCS"
+$StudentTestsEnabled = GetEnvVar -EnvName "STUDENT_TESTS_ENABLED"
+$NonCodeSubmissionsEnabled = GetEnvVar -EnvName "NONCODE_SUBMISSIONS"
+$CourseID = GetEnvVar -EnvName "COURSE_ID"
+$SemesterID = GetEnvVar -EnvName "SEMESTER_ID"
+$StudentUserName = GetEnvVar -EnvName "STUDENT_USERNAME"
+
+$copyToPath = "/tmp/AutoGrader/$CourseID-$SemesterID/$AssignmentName/$StudentUserName"
+
+switch($language){
+
+    "java" {
+        Set-Location /opt/gradle
+
+        git clone "https://$GHtoken@github.com/IUS-CS/$repoName.git"
+
+        if ($TeacherUnitTestsEnabled){
+
+            Set-Location /tmp
+
+            git clone "https://$GHtoken@github.com/IUS-CS/AutoGraderConfig.git"
+
+            Copy-Item -Path "/opt/gradle/$repoName/src/test/java" `
+                      -Destination "/tmp/AutoGraderConfig/src/$CourseType/$AssignmentName/current/tests" `
+                      -Recurse
+        }
+
+        if ($GradeDocsEnabled){
+
+            Set-Location "/opt/gradle/$repoName"
+            gradle javadac
+
+            if (test-path "/opt/gradle/$repoName/build/docs/javadoc" ){
+
+                Copy-Item -Path "/opt/gradle/$repoName/build/docs/javadoc" `
+                          -Destination $copyToPath `
+                          -Recurse
+
+                Rename-Item -Path $copyToPath -NewName "docs"
+            }
+        }
+
+        if ($StudentTestsEnabled -or $TeacherUnitTestsEnabled){
+            set-location "/opt/gradle/$repoName"
+            gradle test
+
+            if (test-path "/opt/gradle/$repoName/build/test-results/test" ){
+                #include <iostream>
+                Copy-Item -Path "/opt/gradle/$repoName/build/test-results/test" `
+                          -Destination $copyToPath `
+                          -Recurse
+
+                Rename-Item -Path $copyToPath -NewName "tests"
+            }
+
+        }
+
+        if ($NonCodeSubmissionsEnabled){
+            if (test-path "/opt/gradle/$repoName/submission" ){
+
+                Copy-Item -Path "/opt/gradle/$repoName/build/test-results/test" `
+                          -Destination $copyToPath `
+                          -Recurse
+            }
+        }
+    }
+
+    "c++" {
+        Set-Location /opt/cmake
+
+        git clone "https://$GHtoken@github.com/IUS-CS/$repoName.git"
+
+        if ($TeacherUnitTestsEnabled){
+
+            Set-Location /tmp
+
+            git clone "https://$GHtoken@github.com/IUS-CS/AutoGraderConfig.git"
+
+            Copy-Item -Path "/opt/cmake/$repoName/test" `
+                      -Destination "/tmp/AutoGraderConfig/src/$CourseType/$AssignmentName/current/tests" `
+                      -Recurse
+        }
+
+        Set-Location "/opt/cmake/cmake-build-debug"
+        cmake -S "../$repoName" -B "."
+        cmake --build "." --target all
+
+        if ($GradeDocsEnabled){
+
+            if (test-path "/opt/cmake/cmake-build-debug/docs/doc_doxygen/html" ){
+                #include <iostream>
+                Copy-Item -Path "/opt/cmake/cmake-build-debug/docs/doc_doxygen/html" `
+                          -Destination $copyToPath `
+                          -Recurse
+
+                Rename-Item -Path $copyToPath -NewName "docs"
+            }
+        }
+
+        if ($StudentTestsEnabled -or $TeacherUnitTestsEnabled){
+            set-location "/opt/cmake/cmake-build-debug"
+            ctest "." --output-junit "./test/reports/test_output.xml"
+
+            if (test-path "/opt/cmake/cmake-build-debug/test/reports" ){
+                #include <iostream>
+                Copy-Item -Path "/opt/cmake/cmake-build-debug/test/reports" `
+                          -Destination $copyToPath `
+                          -Recurse
+
+                Rename-Item -Path $copyToPath -NewName "reports"
+            }
+
+        }
+
+        if ($NonCodeSubmissionsEnabled){
+            if (test-path "/opt/cmake/$repoName/submission" ){
+
+                Copy-Item -Path "/opt/cmake/$repoName/submission" `
+                          -Destination $copyToPath `
+                          -Recurse
+            }
+        }
+    }
+
+#    "python" {
+#
+#    }
+
+    default {
+        # Log and deal with unsupported language
+        write-error "$language is not supported. Nothing has been graded."
+    }
+
+}
+
+
+
+
+
