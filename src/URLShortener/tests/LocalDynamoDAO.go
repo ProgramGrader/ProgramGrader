@@ -13,7 +13,7 @@ import (
 
 // CreateLocalClient returns the config associated with local docker container
 func CreateLocalClient() (*dynamodb.Client, error) {
-	awsEndpoint := "http://localhost:8000"
+	awsEndpoint := "http://0.0.0.0:4566"
 	awsRegion := "us-east-2"
 
 	cfg, err := config.LoadDefaultConfig(context.TODO(),

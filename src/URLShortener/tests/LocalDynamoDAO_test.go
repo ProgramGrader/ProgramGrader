@@ -4,21 +4,21 @@ import "testing"
 
 const TABLENAME = "S3URLS"
 
-func TestCreateLocalClient(t *testing.T) {
-	_, err := CreateLocalClient()
-	if err != nil {
-		t.Errorf("TestCreateLocalClient(), Failed. Error creating local client. got %s\n", err)
-	}
-}
+//func TestCreateLocalClient(t *testing.T) {
+//	_, err := CreateLocalClient()
+//	if err != nil {
+//		t.Errorf("TestCreateLocalClient(), Failed. Error creating local client. got %s\n", err)
+//	}
+//}
 
 // make delete table function move does table exist here and test using those two
-func TestCreateTable(t *testing.T) {
-	config, _ := CreateLocalClient()
-	CreateTable(config, "test")
-	if !TableExists(config, "test") {
-		t.Fatalf("TestCreateTable(), Failed. Expected %s to exist.")
-	}
-}
+//func TestCreateTable(t *testing.T) {
+//	config, _ := CreateLocalClient()
+//	CreateTable(config, TABLENAME)
+//	if !TableExists(config, TABLENAME) {
+//		t.Fatalf("TestCreateTable(), Failed. Expected to exist.")
+//	}
+//}
 
 func TestPutAndGet(t *testing.T) {
 
