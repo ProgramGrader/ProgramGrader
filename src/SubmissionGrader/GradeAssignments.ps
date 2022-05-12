@@ -50,7 +50,7 @@ switch($language){
             Set-Location /tmp
 
             git clone "https://$GHtoken@github.com/IUS-CS/AutoGraderConfig.git"
-
+            #keep paths the same
             Copy-Item -Path "/opt/gradle/$repoName/src/test/java" `
                       -Destination "/tmp/AutoGraderConfig/src/$CourseType/$AssignmentName/current/tests" `
                       -Recurse

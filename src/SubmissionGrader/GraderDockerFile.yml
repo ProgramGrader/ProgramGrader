@@ -104,14 +104,13 @@ RUN python3 -m pip install virtualenv
 
 # Install PowerShell for automation scripts
 # https://docs.microsoft.com/en-us/powershell/scripting/install/install-ubuntu?view=powershell-7.2
-RUN wget -q https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb && \
-dpkg -i packages-microsoft-prod.deb && \
-apt-get update && \
-apt-get install -y powershell && \
-apt-get clean
+#RUN wget -q https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb && \
+#dpkg -i packages-microsoft-prod.deb && \
+#apt-get update && \
+#apt-get install -y powershell && \
+#apt-get clean
 
-COPY GradeAssignments.ps /
+COPY GradeAssignments.go /
 
-# #  "write-host 'Bigg ppp'
-#ENTRYPOINT ["pwsh", "-File", "/GradeAssignments.ps"]
+#ENTRYPOINT ["go", "run", "/GradeAssignments.go"]
 
