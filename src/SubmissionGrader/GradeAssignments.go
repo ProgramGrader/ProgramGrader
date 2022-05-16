@@ -7,11 +7,15 @@ import (
 	"os/exec"
 	"os/signal"
 	"runtime"
+	"sync"
 	"syscall"
+	"time"
 	// "runtime"
 )
 
 var (
+	lock sync.Mutex
+
 	//secret token
 	githubToken = GetEnvVar("GITHUBTOKEN")
 
@@ -49,42 +53,46 @@ func languageSwitch(ctx context.Context) {
 	case "java":
 		{
 			//clone repo
-			err = cloneRepo(githubToken, repoName)
+			err = cloneRepo()
 			if err != nil {
 				fmt.Printf("Error: %s", err)
 				return
 			}
 			if teacherUnitTestsEnabled == "TRUE" {
-				err = cloneConfigRepo(githubToken)
+				err = cloneConfigRepo()
 				if err != nil {
 					fmt.Printf("Error: %s", err)
 					return
 				}
 				//copy tests to folder
-				err = copyTestsToFolder(repoName)
+				err = copyTestsToFolder()
 				if err != nil {
 					fmt.Printf("Error: %s", err)
+					return
 				}
 			}
 			if gradeDocsEnabled == "TRUE" {
 				fmt.Println("Grading java")
-				err = createDocs(repoName)
+				err = createDocs()
 				if err != nil {
 					fmt.Printf("Error: %s", err)
+					return
 				}
 			}
 			if studentTestsEnabled == "TRUE" || teacherUnitTestsEnabled == "TRUE" {
 				err = runUnitTests()
 				if err != nil {
 					fmt.Printf("Error: %s", err)
+					return
 				}
 			}
 
 			if nonCodeSubmissionsEnabled == "TRUE" {
-				//err = handleNonCodeSubmissions()
-				//if err != nil {
-				//	return err
-				//}
+				err = handleNonCodeSubmissions()
+				if err != nil {
+					fmt.Printf("Error: %s", err)
+					return
+				}
 			}
 		}
 	case "c++":
@@ -102,6 +110,7 @@ func languageSwitch(ctx context.Context) {
 			fmt.Println(language + " is not supported. Nothing has been graded.")
 		}
 	}
+	return
 }
 
 func copyToPath() string {
@@ -114,8 +123,31 @@ func copyToPath() string {
 	return ret
 }
 
-func copyTestsToFolder(repoName string) error {
-	cmd := exec.Command("cp", "--recursive", fmt.Sprintf("/opt/gradle/%v/src/test/java", repoName))
+func copyTestsToFolder() error {
+	cmd := exec.Command("cp", "--recursive")
+	cmd.Dir = fmt.Sprintf("/opt/gradle/%v/src/test/java", repoName)
+	err := cmd.Run()
+	fmt.Printf("Error: %s", err)
+	if err != nil {
+		return err
+	}
+	return err
+}
+
+func cloneRepo() error {
+	cmd := exec.Command("git", "clone")
+	cmd.Dir = fmt.Sprintf("https://%v@github.com/%v.git", githubToken, repoName)
+	err := cmd.Run()
+	if err != nil {
+		fmt.Printf("Error: %s", err)
+		return err
+	}
+	return err
+}
+
+func cloneConfigRepo() error {
+	cmd := exec.Command("git", "clone")
+	cmd.Dir = fmt.Sprintf("https://%v@github.com/%v.git", githubToken, config)
 	err := cmd.Run()
 	if err != nil {
 		return err
@@ -123,38 +155,18 @@ func copyTestsToFolder(repoName string) error {
 	return err
 }
 
-func cloneRepo(githubToken string, repoName string) error {
-	cmd := exec.Command("git", "clone", fmt.Sprintf("https://%v@github.com/%v.git", githubToken, repoName))
-	cmd.Dir = "/opt/gradle"
-	err := cmd.Run()
-	if err != nil {
-		return err
-	}
-	return err
-}
-
-func cloneConfigRepo(githubToken string) error {
-	cmd := exec.Command("git", "clone", fmt.Sprintf("https://%v@github.com/%v.git", githubToken, config))
-	cmd.Dir = "/tmp"
-	err := cmd.Run()
-	if err != nil {
-		return err
-	}
-	return err
-}
-
-func createDocs(repoName string) error {
-	cmd := exec.Command("gradle", "javadoc", fmt.Sprintf("/opt/gradle/%v", repoName))
+func createDocs() error {
+	cmd := exec.Command("gradle", "javadoc")
 	cmd.Dir = fmt.Sprintf("/opt/gradle/%v", repoName)
 	err := cmd.Run()
 	if err != nil {
+		fmt.Printf("Error: %s", err)
 		return err
 	}
 	//tarStream, _, err := cli.CopyFromContainer(ctx, containerName, fmt.Sprintf("/opt/gradle/%v/build/docs/javadoc", repoName))
 	//if err != nil {
 	//	return err
 	//}
-
 	return err
 }
 
@@ -169,20 +181,26 @@ func runUnitTests() error {
 	return err
 }
 
-//func handleNonCodeSubmissions() error {
-//	tarStream, _, err := cli.CopyFromContainer(ctx, containerName, fmt.Sprintf("/opt/gradle/%v/submission", *repo.Name))
-//	cmd := exec.Command("gradle", "")
-//	if err == nil {
-//		common.HandleTarStream(tarStream, CopyToPath)
-//	}
-//}
+func handleNonCodeSubmissions() error {
+	//tarStream, _, err := cli.CopyFromContainer(ctx, containerName, fmt.Sprintf("/opt/gradle/%v/submission", *repo.Name))
+	cmd := exec.Command("gradle", "")
+	err := cmd.Run()
+	if err != nil {
+		fmt.Printf("Error: %s", err)
+		return err
+	}
+	return err
+}
 
 func main() {
 	ctx := context.Background()
-	go languageSwitch(ctx)
 	sc := make(chan os.Signal, 1)
+	//sigint, sigterm & os.int
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
-	<-sc
+	go languageSwitch(ctx)
+	time.Sleep(1 * time.Second)
+	sig := <-sc
+	fmt.Printf("Caught SIGTERM %s", sig)
 
 	// done: start with environment variables
 	// done: switch statement
