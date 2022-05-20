@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -10,11 +9,10 @@ import (
 	"sync"
 	"syscall"
 	"time"
-	// "runtime"
 )
 
 var (
-	lock sync.Mutex
+	mu sync.Mutex
 
 	//secret token
 	githubToken = GetEnvVar("GITHUBTOKEN")
@@ -35,19 +33,24 @@ var (
 	config        = "IUS-CS/AutoGraderConfig"
 	containerName = repoName + "-Container"
 	// copyToPath = "/tmp/AutoGrader/$CourseID-$SemesterID/$AssignmentName/$StudentUserName"
-	tempPath = "/tmp/AutoGrader/" + courseID + "-" + semesterID + "/" + assignmentName + "/" + studentUserName
+	tempPath = "/tmp/AutoGrader/" + courseID + "-" + semesterID + "-" + assignmentName + "-" + studentUserName + "/"
 )
+
+type signals struct {
+	signalThrown bool
+	mu           sync.Mutex
+}
 
 func GetEnvVar(envName string) string {
 	if envName != "" {
-		ret := os.Getenv("envName")
+		ret := os.Getenv(envName)
 		return ret
 	}
 	fmt.Printf(envName + "environment variable was not found.")
 	return "error"
 }
 
-func languageSwitch(ctx context.Context) {
+func languageSwitch(sigs signals) {
 	var err error
 	switch language {
 	case "java":
@@ -135,8 +138,8 @@ func copyTestsToFolder() error {
 }
 
 func cloneRepo() error {
-	cmd := exec.Command("git", "clone")
-	cmd.Dir = fmt.Sprintf("https://%v@github.com/%v.git", githubToken, repoName)
+	cmd := exec.Command("git", "clone", fmt.Sprintf("https://github.com/%v", repoName))
+	cmd.Dir = "/tmp/AutoGrader"
 	err := cmd.Run()
 	if err != nil {
 		fmt.Printf("Error: %s", err)
@@ -146,8 +149,8 @@ func cloneRepo() error {
 }
 
 func cloneConfigRepo() error {
-	cmd := exec.Command("git", "clone")
-	cmd.Dir = fmt.Sprintf("https://%v@github.com/%v.git", githubToken, config)
+	cmd := exec.Command("git", "clone", fmt.Sprintf("https://%v@github.com/%v.git", githubToken, config))
+	cmd.Dir = ""
 	err := cmd.Run()
 	if err != nil {
 		return err
@@ -184,6 +187,7 @@ func runUnitTests() error {
 func handleNonCodeSubmissions() error {
 	//tarStream, _, err := cli.CopyFromContainer(ctx, containerName, fmt.Sprintf("/opt/gradle/%v/submission", *repo.Name))
 	cmd := exec.Command("gradle", "")
+	cmd.Dir = fmt.Sprintf("/opt/gradle/%v/submission", repoName)
 	err := cmd.Run()
 	if err != nil {
 		fmt.Printf("Error: %s", err)
@@ -192,15 +196,24 @@ func handleNonCodeSubmissions() error {
 	return err
 }
 
+//func sigs(sigs signals) {
+//	sig := sigs.sc
+//	fmt.Println("Signal received: ", sig)
+//	sigs.done <- true
+//}
+
 func main() {
-	ctx := context.Background()
 	sc := make(chan os.Signal, 1)
-	//sigint, sigterm & os.int
+	//catch sigint, sigterm & os.int
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
-	go languageSwitch(ctx)
+	done := make(chan bool, 1)
+	//sigStruct := signals{signalThrown, mu}
+	//waitgroup languageswitch
+	//go languageSwitch(sigStruct)
 	time.Sleep(1 * time.Second)
-	sig := <-sc
-	fmt.Printf("Caught SIGTERM %s", sig)
+	//go sigs(sigStruct)
+	<-done
+	fmt.Println("Exiting")
 
 	// done: start with environment variables
 	// done: switch statement
