@@ -5,35 +5,9 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"runtime"
 	"sync"
 	"syscall"
 	"time"
-)
-
-var (
-	mu sync.Mutex
-
-	//secret token
-	githubToken = GetEnvVar("GITHUBTOKEN")
-
-	//env variables
-	language                  = GetEnvVar("LANGUAGE")
-	repoName                  = GetEnvVar("REPOFULLNAME")
-	teacherUnitTestsEnabled   = GetEnvVar("TEACHER_UNIT_TESTS")
-	courseType                = GetEnvVar("COURSE_TYPE")
-	assignmentName            = GetEnvVar("ASSIGNMENT_NAME")
-	gradeDocsEnabled          = GetEnvVar("GRADE_DOCS")
-	studentTestsEnabled       = GetEnvVar("STUDENT_TESTS_ENABLED")
-	nonCodeSubmissionsEnabled = GetEnvVar("NONCODE_SUBMISSIONS")
-	courseID                  = GetEnvVar("COURSE_ID")
-	semesterID                = GetEnvVar("SEMESTER_ID")
-	studentUserName           = GetEnvVar("SUDENT_USERNAME")
-
-	config        = "IUS-CS/AutoGraderConfig"
-	containerName = repoName + "-Container"
-	// copyToPath = "/tmp/AutoGrader/$CourseID-$SemesterID/$AssignmentName/$StudentUserName"
-	tempPath = "/tmp/AutoGrader/" + courseID + "-" + semesterID + "-" + assignmentName + "-" + studentUserName + "/"
 )
 
 type signals struct {
@@ -41,49 +15,68 @@ type signals struct {
 	mu           sync.Mutex
 }
 
-func GetEnvVar(envName string) string {
-	if envName != "" {
-		ret := os.Getenv(envName)
-		return ret
-	}
-	fmt.Printf(envName + "environment variable was not found.")
-	return "error"
-}
-
 func languageSwitch(sigs signals) {
-	var err error
+	var (
+		err                       error
+		githubToken               = GetEnvVar("GITHUBTOKEN")
+		language                  = GetEnvVar("LANGUAGE")
+		repoName                  = GetEnvVar("REPOFULLNAME")
+		teacherUnitTestsEnabled   = GetEnvVar("TEACHER_UNIT_TESTS")
+		courseType                = GetEnvVar("COURSE_TYPE")
+		assignmentName            = GetEnvVar("ASSIGNMENT_NAME")
+		gradeDocsEnabled          = GetEnvVar("GRADE_DOCS")
+		studentTestsEnabled       = GetEnvVar("STUDENT_TESTS_ENABLED")
+		nonCodeSubmissionsEnabled = GetEnvVar("NONCODE_SUBMISSIONS")
+		courseID                  = GetEnvVar("COURSE_ID")
+		semesterID                = GetEnvVar("SEMESTER_ID")
+		studentUserName           = GetEnvVar("SUDENT_USERNAME")
+		config                    = "AutoGraderConfig"
+		repoPath                  = "/opt/gradle"
+		orgName                   = "IUS-CS"
+		tempPath                  = "/tmp"
+		testsPath                 = fmt.Sprintf("%v/%v/src/%v/%v/current/tests", tempPath, config, courseType, assignmentName)
+		autoGraderPath            = fmt.Sprintf("%v/AutoGrader/%v-%v/%v/%v", tempPath, courseID, semesterID, assignmentName, studentUserName)
+	)
 	switch language {
 	case "java":
 		{
 			//clone repo
-			err = cloneRepo()
+			err = cloneRepo(githubToken, orgName, repoName, repoPath)
 			if err != nil {
 				fmt.Printf("Error: %s", err)
 				return
 			}
 			if teacherUnitTestsEnabled == "TRUE" {
-				err = cloneConfigRepo()
+				err = cloneConfigRepo(githubToken, orgName, config, repoPath)
 				if err != nil {
 					fmt.Printf("Error: %s", err)
 					return
 				}
-				//copy tests to folder
-				err = copyTestsToFolder()
+				err = copyTestsToFolder(repoPath, repoName, language, testsPath)
 				if err != nil {
 					fmt.Printf("Error: %s", err)
 					return
 				}
 			}
 			if gradeDocsEnabled == "TRUE" {
-				fmt.Println("Grading java")
-				err = createDocs()
+				err = createDocs(repoPath, repoName)
+				if err != nil {
+					fmt.Printf("Error: %s", err)
+					return
+				}
+				err = copyDocsToFolder(repoPath, repoName, tempPath, courseID, semesterID, assignmentName, studentUserName)
 				if err != nil {
 					fmt.Printf("Error: %s", err)
 					return
 				}
 			}
 			if studentTestsEnabled == "TRUE" || teacherUnitTestsEnabled == "TRUE" {
-				err = runUnitTests()
+				err = runUnitTests(repoPath, repoName)
+				if err != nil {
+					fmt.Printf("Error: %s", err)
+					return
+				}
+				err = copyTestResultsToFolder(repoPath, repoName, autoGraderPath)
 				if err != nil {
 					fmt.Printf("Error: %s", err)
 					return
@@ -91,7 +84,7 @@ func languageSwitch(sigs signals) {
 			}
 
 			if nonCodeSubmissionsEnabled == "TRUE" {
-				err = handleNonCodeSubmissions()
+				err = handleNonCodeSubmissions(repoPath, repoName, autoGraderPath)
 				if err != nil {
 					fmt.Printf("Error: %s", err)
 					return
@@ -116,19 +109,40 @@ func languageSwitch(sigs signals) {
 	return
 }
 
-func copyToPath() string {
-	var ret string
-	if runtime.GOOS == "windows" {
-		ret = fmt.Sprintf("%s\\AutoGrader\\%s\\%s\\%s", tempPath, courseID, assignmentName, studentUserName)
-	} else {
-		ret = fmt.Sprintf("%s/AutoGrader/%s/%s/%s", tempPath, courseID, assignmentName, studentUserName)
+func GetEnvVar(envName string) string {
+	if envName != "" {
+		ret := os.Getenv(envName)
+		return ret
 	}
-	return ret
+	fmt.Printf(envName + "environment variable was not found.")
+	return "error"
 }
 
-func copyTestsToFolder() error {
-	cmd := exec.Command("cp", "--recursive")
-	cmd.Dir = fmt.Sprintf("/opt/gradle/%v/src/test/java", repoName)
+func cloneRepo(githubToken string, orgName string, repoName string, repoPath string) error {
+	cmd := exec.Command("git", "clone", fmt.Sprintf("https://%v@github.com/%v/%v.git", githubToken, orgName, repoName))
+	cmd.Dir = repoPath
+	err := cmd.Run()
+	if err != nil {
+		fmt.Printf("Error: %s", err)
+		return err
+	}
+	return err
+}
+
+func cloneConfigRepo(githubToken string, orgName string, config string, repoPath string) error {
+	cmd := exec.Command("git", "clone", fmt.Sprintf("https://%v@github.com/%v/%v.git", githubToken, orgName, config))
+	cmd.Dir = repoPath
+	err := cmd.Run()
+	if err != nil {
+		return err
+	}
+	return err
+}
+
+func copyTestsToFolder(repoPath string, repoName string, language string, autoGraderPath string) error {
+	copyFromPath := fmt.Sprintf("%v/%v/src/test/%v", repoPath, repoName, language)
+	cmd := exec.Command("cp", "-r", copyFromPath, autoGraderPath)
+	cmd.Dir = repoPath
 	err := cmd.Run()
 	fmt.Printf("Error: %s", err)
 	if err != nil {
@@ -137,45 +151,58 @@ func copyTestsToFolder() error {
 	return err
 }
 
-func cloneRepo() error {
-	cmd := exec.Command("git", "clone", fmt.Sprintf("https://github.com/%v", repoName))
-	cmd.Dir = "/tmp/AutoGrader"
+func copyTestResultsToFolder(repoPath string, repoName string, autoGraderPath string) error {
+	copyFromPath := fmt.Sprintf("%v/%v/build/test-results/test", repoPath, repoName)
+	cmd := exec.Command("cp", "-r", copyFromPath, autoGraderPath)
+	cmd.Dir = fmt.Sprintf("%v/%v", repoPath, repoName)
 	err := cmd.Run()
 	if err != nil {
-		fmt.Printf("Error: %s", err)
 		return err
 	}
-	return err
-}
-
-func cloneConfigRepo() error {
-	cmd := exec.Command("git", "clone", fmt.Sprintf("https://%v@github.com/%v.git", githubToken, config))
-	cmd.Dir = ""
-	err := cmd.Run()
+	//rename
+	cmd = exec.Command("mv", autoGraderPath, "tests")
+	err = cmd.Run()
+	fmt.Printf("Error: %s", err)
 	if err != nil {
 		return err
 	}
 	return err
 }
 
-func createDocs() error {
+func copyDocsToFolder(repoPath string, repoName string, tempPath string, courseID string, semesterID string, assignmentName string, studentUserName string) error {
+	copyFromPath := fmt.Sprintf("%v/%v/build/docs/javadoc", repoPath, repoName)
+	copyToPath := fmt.Sprintf("%v/AutoGrader/%v-%v/%v/%v", tempPath, courseID, semesterID, assignmentName, studentUserName)
+	cmd := exec.Command("cp", "-r", copyFromPath, copyToPath)
+	cmd.Dir = repoPath
+	err := cmd.Run()
+	fmt.Printf("Error: %s", err)
+	if err != nil {
+		return err
+	}
+	//rename
+	cmd = exec.Command("mv", copyToPath, "docs")
+	err = cmd.Run()
+	fmt.Printf("Error: %s", err)
+	if err != nil {
+		return err
+	}
+	return err
+}
+
+func createDocs(repoPath string, repoName string) error {
 	cmd := exec.Command("gradle", "javadoc")
-	cmd.Dir = fmt.Sprintf("/opt/gradle/%v", repoName)
+	cmd.Dir = fmt.Sprintf("%v/%v", repoPath, repoName)
 	err := cmd.Run()
 	if err != nil {
 		fmt.Printf("Error: %s", err)
 		return err
 	}
-	//tarStream, _, err := cli.CopyFromContainer(ctx, containerName, fmt.Sprintf("/opt/gradle/%v/build/docs/javadoc", repoName))
-	//if err != nil {
-	//	return err
-	//}
 	return err
 }
 
-func runUnitTests() error {
+func runUnitTests(repoPath string, repoName string) error {
 	cmd := exec.Command("gradle", "test")
-	cmd.Dir = fmt.Sprintf("/opt/gradle/%v", repoName)
+	cmd.Dir = fmt.Sprintf("%v/%v", repoPath, repoName)
 	err := cmd.Run()
 	if err != nil {
 		fmt.Printf("Error: %s", err)
@@ -184,10 +211,10 @@ func runUnitTests() error {
 	return err
 }
 
-func handleNonCodeSubmissions() error {
-	//tarStream, _, err := cli.CopyFromContainer(ctx, containerName, fmt.Sprintf("/opt/gradle/%v/submission", *repo.Name))
-	cmd := exec.Command("gradle", "")
-	cmd.Dir = fmt.Sprintf("/opt/gradle/%v/submission", repoName)
+func handleNonCodeSubmissions(repoPath string, repoName string, autoGraderPath string) error {
+	copyFromPath := fmt.Sprintf("%v/%v/build/test-results/test", repoPath, repoName)
+	cmd := exec.Command("cp", "r", copyFromPath, autoGraderPath)
+	cmd.Dir = repoPath
 	err := cmd.Run()
 	if err != nil {
 		fmt.Printf("Error: %s", err)
@@ -195,12 +222,6 @@ func handleNonCodeSubmissions() error {
 	}
 	return err
 }
-
-//func sigs(sigs signals) {
-//	sig := sigs.sc
-//	fmt.Println("Signal received: ", sig)
-//	sigs.done <- true
-//}
 
 func main() {
 	sc := make(chan os.Signal, 1)
