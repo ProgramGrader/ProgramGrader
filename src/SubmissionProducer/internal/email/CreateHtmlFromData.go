@@ -41,7 +41,7 @@ func CreateHtmlFromData(data common.AssignmentSubmissions) string {
 				strconv.Itoa(item.FailedTests.Total) + ") Completed</i><br>")
 
 			if !item.FailedTests.Completed {
-				sb.WriteString("&emsp;&emsp;Required amount of test where not completed.<br>")
+				sb.WriteString("&emsp;&emsp;Required amount of testing where not completed.<br>")
 			}
 
 			sb.WriteString("&emsp;&emsp;Failed Tests: <br>")
