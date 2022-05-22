@@ -105,8 +105,14 @@ which python3
 RUN python3 -m pip install virtualenv
 
 # Install Golang
-RUN apt-get install -y golang-go &&\
-apt-get clean &&\
+ENV GO_VERSION 1.18.2
+ENV PATH=$PATH:/usr/local/go/bin
+ENV GOROOT=/usr/local/go
+ENV GOPATH=/root/package
+
+RUN wget -q https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz &&\
+tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz &&\
+rm -rf go${GO_VERSION}.linux-amd64.tar.gz &&\
 which go
 
 # Copy application to image
@@ -116,10 +122,13 @@ COPY go.mod ./
 COPY go.sum ./
 COPY GradeAssignments.go ./
 COPY internal/ ./internal/
-  
+
+# Remove test files
+RUN find .  -iname '*_test.go' -delete
+
 # Install dependencies
-RUN go mod download &&\
-go build -o /gradeAssignment
+RUN go mod download 
+RUN go build -o SubmissionGrader
 
 ENTRYPOINT ["GradeAssignment"]
 
