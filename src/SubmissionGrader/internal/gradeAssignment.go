@@ -49,6 +49,7 @@ func GradeAssignment(signalVar *GoSafeVar[bool], wg *sync.WaitGroup) {
 	case "c++":
 		{
 			repoPath = "/opt/gradle"
+			// Be careful C++ directories are not all the same
 		}
 
 	case "python":
