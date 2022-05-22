@@ -75,11 +75,6 @@ func GradeAssignment(signalVar *GoSafeVar[bool], wg *sync.WaitGroup) {
 		return
 	}
 
-	if GetValue(signalVar) {
-		// TODO: put submission back in the queue
-		return
-	}
-
 	if teacherUnitTestsEnabled == "TRUE" {
 		err = cloneConfigRepo(githubToken, orgName, config, repoPath)
 		if err != nil {
@@ -110,6 +105,12 @@ func GradeAssignment(signalVar *GoSafeVar[bool], wg *sync.WaitGroup) {
 			return
 		}
 	}
+
+	if GetValue(signalVar) {
+		// TODO: put submission back in the queue
+		return
+	}
+
 	if studentTestsEnabled == "TRUE" || teacherUnitTestsEnabled == "TRUE" {
 		err = runUnitTests(repoPath, repoName)
 		if err != nil {
@@ -123,11 +124,7 @@ func GradeAssignment(signalVar *GoSafeVar[bool], wg *sync.WaitGroup) {
 		}
 	}
 
-	if GetValue(signalVar) {
-		// TODO: put submission back in the queue
-		return
-	}
-
+	// No looking for signal here as coping files is very quick compared to running tests
 	if nonCodeSubmissionsEnabled == "TRUE" {
 		err = handleNonCodeSubmissions(repoPath, repoName, autoGraderPath)
 		if err != nil {
