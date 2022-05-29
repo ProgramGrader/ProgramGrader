@@ -10,7 +10,6 @@ func copyTestsToFolder(repoPath string, repoName string, language string, autoGr
 	cmd := exec.Command("cp", "-r", copyFromPath, autoGraderPath)
 	cmd.Dir = repoPath
 	err := cmd.Run()
-	fmt.Printf("Error: %s", err)
 	if err != nil {
 		return err
 	}

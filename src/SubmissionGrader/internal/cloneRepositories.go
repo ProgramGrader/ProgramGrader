@@ -10,7 +10,6 @@ func cloneRepo(githubToken string, orgName string, repoName string, repoPath str
 	cmd.Dir = repoPath
 	err := cmd.Run()
 	if err != nil {
-		fmt.Printf("Error: %s", err)
 		return err
 	}
 	return err
