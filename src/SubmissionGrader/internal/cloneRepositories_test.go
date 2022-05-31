@@ -7,24 +7,17 @@ import (
 	"testing"
 )
 
-// exists returns whether the given file or directory exists
-func exists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil
-	}
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-	return false, err
-}
-
 func TestCloneRepo(t *testing.T) {
 	githubToken := os.Getenv("GITHUBTOKEN")
 	orgName := "ProgramGrader"
 	repoName := "00000-SP22-C202-assignment-1-username2"
-	repoPath := "/Users/josephlyell/Documents/SubmissionGraderTests"
-	err := cloneRepo(githubToken, orgName, repoName, repoPath)
+	wd, err := os.Getwd()
+	if err != nil {
+		fmt.Printf("Error: %s", err)
+	}
+	err = os.Mkdir("cloneTest", 0700)
+	repoPath := wd + "/cloneTest"
+	err = cloneRepo(githubToken, orgName, repoName, repoPath)
 	if err != nil {
 		fmt.Printf("Error: %s", err)
 	}
@@ -36,14 +29,22 @@ func TestCloneRepo(t *testing.T) {
 	if want != got {
 		t.Errorf("CloneRepo failed. want: %s; got: %s", strconv.FormatBool(want), strconv.FormatBool(got))
 	}
+	err = cleanup(repoPath)
+	if err != nil {
+		fmt.Printf("Error: %s", err)
+	}
 }
 
 func TestCloneConfigRepo(t *testing.T) {
 	githubToken := os.Getenv("GITHUBTOKEN")
 	orgName := "ProgramGrader"
 	config := "GraderConfigTest"
-	repoPath := "/Users/josephlyell/Documents/SubmissionGraderTests"
-	err := cloneConfigRepo(githubToken, orgName, config, repoPath)
+	wd, err := os.Getwd()
+	if err != nil {
+		fmt.Printf("Error: %s", err)
+	}
+	repoPath := wd + "/tmp"
+	err = cloneConfigRepo(githubToken, orgName, config, repoPath)
 	if err != nil {
 		fmt.Printf("Error: %s", err)
 	}
@@ -54,5 +55,9 @@ func TestCloneConfigRepo(t *testing.T) {
 	}
 	if want != got {
 		t.Errorf("CloneConfigRepo failed. want: %s; got: %s", strconv.FormatBool(want), strconv.FormatBool(got))
+	}
+	err = cleanup(repoPath + "/" + config)
+	if err != nil {
+		fmt.Printf("Error: %s", err)
 	}
 }

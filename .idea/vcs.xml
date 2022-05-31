@@ -2,5 +2,8 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/SubmissionGrader/internal/00000-SP22-C202-assignment-1-username2" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/SubmissionGrader/internal/tmp/00000-SP22-C202-assignment-1-username2" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/SubmissionGrader/internal/tmp/GraderConfigTest" vcs="Git" />
   </component>
 </project>
