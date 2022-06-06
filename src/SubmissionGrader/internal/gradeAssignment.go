@@ -23,7 +23,7 @@ func GradeAssignment(signalVar *GoSafeVar[bool], wg *sync.WaitGroup) {
 		githubToken               = GetEnvVar("GITHUBTOKEN")
 		language                  = GetEnvVar("LANGUAGE")
 		repoName                  = GetEnvVar("REPOFULLNAME")
-		teacherUnitTestsEnabled   = GetEnvVar("TEACHER_UNIT_TESTS")
+		teacherUnitTestsEnabled   = GetEnvVar("TEACHERUNITTESTSENABLED")
 		courseType                = GetEnvVar("COURSE_TYPE")
 		assignmentName            = GetEnvVar("ASSIGNMENT_NAME")
 		gradeDocsEnabled          = GetEnvVar("GRADE_DOCS")
@@ -32,9 +32,9 @@ func GradeAssignment(signalVar *GoSafeVar[bool], wg *sync.WaitGroup) {
 		courseID                  = GetEnvVar("COURSE_ID")
 		semesterID                = GetEnvVar("SEMESTER_ID")
 		studentUserName           = GetEnvVar("SUDENT_USERNAME")
+		orgName                   = GetEnvVar("ORGNAME")
 		config                    = "AutoGraderConfig"
-		orgName                   = "IUS-CS"
-		tempPath                  = "/tmp"
+		tempPath                  = GetEnvVar("tempPath")
 		testsPath                 = fmt.Sprintf("%v/%v/src/%v/%v/current/tests", tempPath, config, courseType, assignmentName)
 		autoGraderPath            = fmt.Sprintf("%v/AutoGrader/%v-%v/%v/%v", tempPath, courseID, semesterID, assignmentName, studentUserName)
 	)
