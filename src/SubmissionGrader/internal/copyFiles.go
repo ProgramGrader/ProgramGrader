@@ -17,38 +17,31 @@ func copyTestsToFolder(repoPath string, repoName string, language string, autoGr
 }
 
 func copyTestResultsToFolder(repoPath string, repoName string, autoGraderPath string) error {
-	copyFromPath := fmt.Sprintf("%v/%v/build/test-results/test", repoPath, repoName)
+	copyFromPath := fmt.Sprintf("%v/%v/build/test-results", repoPath, repoName)
 	cmd := exec.Command("cp", "-r", copyFromPath, autoGraderPath)
 	cmd.Dir = fmt.Sprintf("%v/%v", repoPath, repoName)
 	err := cmd.Run()
 	if err != nil {
 		return err
 	}
-	//rename
-	cmd = exec.Command("mv", autoGraderPath, "tests")
-	err = cmd.Run()
-	fmt.Printf("Error: %s", err)
-	if err != nil {
-		return err
-	}
 	return err
 }
 
-func copyDocsToFolder(repoPath string, repoName string, tempPath string, courseID string, semesterID string, assignmentName string, studentUserName string) error {
-	copyFromPath := fmt.Sprintf("%v/%v/build/docs/javadoc", repoPath, repoName)
-	copyToPath := fmt.Sprintf("%v/AutoGrader/%v-%v/%v/%v", tempPath, courseID, semesterID, assignmentName, studentUserName)
-	cmd := exec.Command("cp", "-r", copyFromPath, copyToPath)
-	cmd.Dir = repoPath
+func copyDocsToFolder(repoPath string, repoName string, courseID string, semesterID string, assignmentName string, studentUserName string) error {
+	copyFromPath := fmt.Sprintf("%v/%v/build/docs", repoPath, repoName)
+	copyToPath := fmt.Sprintf("%v-%v-%v-%v-docs", courseID, semesterID, assignmentName, studentUserName)
+	cmd := exec.Command("mkdir", copyToPath)
+	cmd.Dir = repoPath + "/AutoGrader"
 	err := cmd.Run()
-	fmt.Printf("Error: %s", err)
 	if err != nil {
 		return err
 	}
-	//rename
-	cmd = exec.Command("mv", copyToPath, "docs")
+	docsPath := repoPath + "/AutoGrader/" + copyToPath
+	cmd = exec.Command("cp", "-r", copyFromPath, docsPath)
+	cmd.Dir = repoPath + "/AutoGrader"
 	err = cmd.Run()
-	fmt.Printf("Error: %s", err)
 	if err != nil {
+		fmt.Println("Error in copy")
 		return err
 	}
 	return err

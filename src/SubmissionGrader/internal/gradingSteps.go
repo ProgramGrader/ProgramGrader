@@ -27,10 +27,10 @@ func runUnitTests(repoPath string, repoName string) error {
 	return err
 }
 
+//copies test results?
 func handleNonCodeSubmissions(repoPath string, repoName string, autoGraderPath string) error {
 	copyFromPath := fmt.Sprintf("%v/%v/build/test-results/test", repoPath, repoName)
 	cmd := exec.Command("cp", "r", copyFromPath, autoGraderPath)
-	cmd.Dir = repoPath
 	err := cmd.Run()
 	if err != nil {
 		fmt.Printf("Error: %s", err)

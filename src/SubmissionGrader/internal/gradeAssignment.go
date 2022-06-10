@@ -34,9 +34,8 @@ func GradeAssignment(signalVar *GoSafeVar[bool], wg *sync.WaitGroup) {
 		studentUserName           = GetEnvVar("SUDENT_USERNAME")
 		orgName                   = GetEnvVar("ORGNAME")
 		config                    = "AutoGraderConfig"
-		tempPath                  = GetEnvVar("tempPath")
-		testsPath                 = fmt.Sprintf("%v/%v/src/%v/%v/current/tests", tempPath, config, courseType, assignmentName)
-		autoGraderPath            = fmt.Sprintf("%v/AutoGrader/%v-%v/%v/%v", tempPath, courseID, semesterID, assignmentName, studentUserName)
+		testsPath                 = fmt.Sprintf("tmp/%v/src/%v/%v/current/tests", config, courseType, assignmentName)
+		autoGraderPath            = fmt.Sprintf("tmp/AutoGrader/%v-%v/%v/%v", courseID, semesterID, assignmentName, studentUserName)
 	)
 
 	var repoPath string
@@ -99,7 +98,7 @@ func GradeAssignment(signalVar *GoSafeVar[bool], wg *sync.WaitGroup) {
 			fmt.Printf("Error: %s", err)
 			return
 		}
-		err = copyDocsToFolder(repoPath, repoName, tempPath, courseID, semesterID, assignmentName, studentUserName)
+		err = copyDocsToFolder(repoPath, repoName, courseID, semesterID, assignmentName, studentUserName)
 		if err != nil {
 			fmt.Printf("Error: %s", err)
 			return

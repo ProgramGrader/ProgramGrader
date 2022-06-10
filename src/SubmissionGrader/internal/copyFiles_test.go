@@ -37,7 +37,33 @@ func TestCopyTestsToFolder(t *testing.T) {
 }
 
 func TestCopyTestResultsToFolder(t *testing.T) {
-	//test after unit test results created
+	wd, err := os.Getwd()
+	if err != nil {
+		fmt.Printf("Error: %s", err)
+	}
+	repoName := "00000-SP22-C202-assignment-1-username2"
+	repoPath := wd + "/tmp"
+	err = runUnitTests(repoPath, repoName)
+	if err != nil {
+		fmt.Printf("Error running tests: %s", err)
+	}
+	autoGraderPath := repoPath + "/AutoGrader"
+	err = copyTestResultsToFolder(repoPath, repoName, autoGraderPath)
+	if err != nil {
+		fmt.Printf("Error: %s", err)
+	}
+	want := true
+	got, err := exists(repoPath + "/AutoGrader/test")
+	if err != nil {
+		fmt.Printf("Error: %s", err)
+	}
+	if want != got {
+		t.Errorf("CopyTestResultsToFolder failed. want: %s; got: %s", strconv.FormatBool(want), strconv.FormatBool(got))
+	}
+	err = cleanup(fmt.Sprintf("%s/AutoGrader/test", repoPath))
+	if err != nil {
+		fmt.Printf("Error: %s", err)
+	}
 }
 
 func TestCopyDocsToFolder(t *testing.T) {
@@ -46,26 +72,30 @@ func TestCopyDocsToFolder(t *testing.T) {
 		fmt.Printf("Error: %s", err)
 	}
 	repoName := "00000-SP22-C202-assignment-1-username2"
-	repoPath := wd + "/tmp/" + repoName
-	tempPath := "tmp"
+	repoPath := wd + "/tmp"
+	err = createDocs(repoPath, repoName)
+	if err != nil {
+		fmt.Printf("Error creating docs: %s", err)
+	}
 	courseID := "00000"
 	semesterID := "SP22"
 	assignmentName := "C202-assignment-1"
 	studentUserName := "username2"
-
-	err = copyDocsToFolder(repoPath, repoName, tempPath, courseID, semesterID, assignmentName, studentUserName)
+	err = copyDocsToFolder(repoPath, repoName, courseID, semesterID, assignmentName, studentUserName)
 	if err != nil {
-		fmt.Printf("Error: %s", err)
+		fmt.Printf("Error in copyDocsToFolder: %s", err)
 	}
 	want := true
-	got, err := exists(repoPath + "/docs")
+	got, err := exists(fmt.Sprintf("%v/AutoGrader/%v-%v-%v-%v-docs/docs", repoPath, courseID, semesterID, assignmentName, studentUserName))
 	if err != nil {
 		fmt.Printf("Error: %s", err)
 	}
 	if want != got {
 		t.Errorf("CopyDocsToFolder failed. want: %s; got: %s", strconv.FormatBool(want), strconv.FormatBool(got))
 	}
-	err = cleanup(repoPath + "/docs")
+	//err = cleanup(fmt.Sprintf("%v/AutoGrader/%v-%v-%v-%v-docs", repoPath, courseID, semesterID, assignmentName, studentUserName))
+	err = cleanup(fmt.Sprintf("%v/AutoGrader/", repoPath))
+
 	if err != nil {
 		fmt.Printf("Error: %s", err)
 	}

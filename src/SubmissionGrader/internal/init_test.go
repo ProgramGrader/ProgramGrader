@@ -36,6 +36,9 @@ func init() {
 		}
 	}
 	err = os.Mkdir("tmp", 0700)
+	if err != nil {
+		fmt.Printf("Error: %s", err)
+	}
 	githubToken := os.Getenv("GITHUBTOKEN")
 	orgName := "ProgramGrader"
 	repoName := "00000-SP22-C202-assignment-1-username2"

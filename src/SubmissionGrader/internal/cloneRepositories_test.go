@@ -15,8 +15,8 @@ func TestCloneRepo(t *testing.T) {
 	if err != nil {
 		fmt.Printf("Error: %s", err)
 	}
-	err = os.Mkdir("cloneTest", 0700)
-	repoPath := wd + "/cloneTest"
+	err = os.Mkdir("tmp/cloneTest", 0700)
+	repoPath := wd + "/tmp/cloneTest"
 	err = cloneRepo(githubToken, orgName, repoName, repoPath)
 	if err != nil {
 		fmt.Printf("Error: %s", err)
