@@ -20,7 +20,8 @@ RUN --mount=type=cache,target=/var/cache/apt/java \
 apt-get install -y openjdk-${JAVA_VERSION}-jdk && \
 apt-get clean
 
-RUN apt-get install -y \
+RUN --mount=type=cache,target=/var/cache/apt/git \
+apt-get install -y \
 --no-install-recommends \
 unzip \
 wget \
@@ -38,7 +39,6 @@ ENV GITURLS ""
 ENV GRADLE_VERSION 7.3.3
 ARG GRADLE_DOWNLOAD_SHA256=b586e04868a22fd817c8971330fec37e298f3242eb85c374181b12d637f80302
   
-  
 # Setup JAVA_HOME -- useful for docker commandline
 ENV JAVA_HOME /usr/lib/jvm/java-${JAVA_VERSION}-openjdk-amd64/
 RUN export JAVA_HOME
@@ -46,23 +46,23 @@ RUN export JAVA_HOME
 # Set up Gradle
 # Got from https://github.com/keeganwitt/docker-gradle
 
-RUN set -o errexit -o nounset \
-&& echo "Downloading Gradle" \
-&& wget --no-verbose --output-document=gradle.zip "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" \
+RUN set -o errexit -o nounset &&\
+echo "Downloading Gradle" &&\
+wget --no-verbose --output-document=gradle.zip "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" && \
 \
-&& echo "Checking download hash" \
-&& echo "${GRADLE_DOWNLOAD_SHA256} *gradle.zip" | sha256sum --check - \
+echo "Checking download hash" && \
+echo "${GRADLE_DOWNLOAD_SHA256} *gradle.zip" | sha256sum --check - &&\
 \
-&& echo "Installing Gradle" \
-&& unzip gradle.zip \
-&& rm gradle.zip \
-&& mv "gradle-${GRADLE_VERSION}" "${GRADLE_HOME}/" \
-&& ln --symbolic "${GRADLE_HOME}/bin/gradle" /usr/bin/gradle \
+echo "Installing Gradle" &&\
+unzip gradle.zip &&\
+rm gradle.zip &&\
+mv "gradle-${GRADLE_VERSION}" "${GRADLE_HOME}/" &&\
+ln --symbolic "${GRADLE_HOME}/bin/gradle" /usr/bin/gradle &&\
 \
-&& echo "Testing Gradle installation" \
-&& gradle --version
+echo "Testing Gradle installation" &&\
+gradle --version
   
-  # Set up Dotnet Core
+# Set up Dotnet Core
 RUN --mount=type=cache,target=/var/cache/dotnetCore \
 wget https://packages.microsoft.com/config/ubuntu/21.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb && \
 dpkg -i packages-microsoft-prod.deb &&\
@@ -76,11 +76,13 @@ which dotnet
   # Set up C++ and toolchains
 ENV CMAKE_VERSION 3.22.2
 
-RUN apt-get install -y --no-install-recommends build-essential libssl-dev gcc g++ gdb ninja-build doxygen graphviz googletest &&\
+RUN --mount=type=cache,target=/var/cache/apt/c++ \
+apt-get install -y --no-install-recommends build-essential libssl-dev gcc g++ gdb ninja-build doxygen graphviz googletest &&\
 apt-get clean &&\
 which gcc 
 
-RUN wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}.tar.gz &&\
+RUN --mount=type=cache,target=/var/cache/cInstall \
+wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}.tar.gz &&\
 tar -zxf cmake-${CMAKE_VERSION}.tar.gz &&\
 cd cmake-${CMAKE_VERSION} &&\
 ./bootstrap &&\
@@ -102,16 +104,31 @@ which python3
 # Install python packages
 RUN python3 -m pip install virtualenv
 
-# Install PowerShell for automation scripts
-# https://docs.microsoft.com/en-us/powershell/scripting/install/install-ubuntu?view=powershell-7.2
-RUN wget -q https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb && \
-dpkg -i packages-microsoft-prod.deb && \
-apt-get update && \
-apt-get install -y powershell && \
-apt-get clean
+# Install Golang
+ENV GO_VERSION 1.18.2
+ENV PATH=$PATH:/usr/local/go/bin
+ENV GOROOT=/usr/local/go
+ENV GOPATH=/root/package
 
-COPY GradeAssignments.ps /
+RUN wget -q https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz &&\
+tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz &&\
+rm -rf go${GO_VERSION}.linux-amd64.tar.gz &&\
+which go
 
-# #  "write-host 'Bigg ppp'
-#ENTRYPOINT ["pwsh", "-File", "/GradeAssignments.ps"]
+# Copy application to image
+WORKDIR /app
+  
+COPY go.mod ./
+COPY go.sum ./
+COPY GradeAssignments.go ./
+COPY internal/ ./internal/
+
+# Remove test files
+RUN find .  -iname '*_test.go' -delete
+
+# Install dependencies
+RUN go mod download 
+RUN go build -o SubmissionGrader
+
+ENTRYPOINT ["GradeAssignment"]
 

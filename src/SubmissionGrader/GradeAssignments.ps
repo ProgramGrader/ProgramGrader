@@ -50,10 +50,13 @@ switch($language){
             Set-Location /tmp
 
             git clone "https://$GHtoken@github.com/IUS-CS/AutoGraderConfig.git"
-
-            Copy-Item -Path "/opt/gradle/$repoName/src/test/java" `
+            #keep paths the same
+            Copy-Item -Path "/opt/gradle/$repoName/src/testing/java" `
                       -Destination "/tmp/AutoGraderConfig/src/$CourseType/$AssignmentName/current/tests" `
                       -Recurse
+
+
+
         }
 
         if ($GradeDocsEnabled){
@@ -75,9 +78,9 @@ switch($language){
             set-location "/opt/gradle/$repoName"
             gradle test
 
-            if (test-path "/opt/gradle/$repoName/build/test-results/test" ){
-                #include <iostream>
-                Copy-Item -Path "/opt/gradle/$repoName/build/test-results/test" `
+            if (test-path "/opt/gradle/$repoName/build/testing-results/testing" ){
+
+                Copy-Item -Path "/opt/gradle/$repoName/build/testing-results/testing" `
                           -Destination $copyToPath `
                           -Recurse
 
@@ -89,7 +92,7 @@ switch($language){
         if ($NonCodeSubmissionsEnabled){
             if (test-path "/opt/gradle/$repoName/submission" ){
 
-                Copy-Item -Path "/opt/gradle/$repoName/build/test-results/test" `
+                Copy-Item -Path "/opt/gradle/$repoName/build/testing-results/testing" `
                           -Destination $copyToPath `
                           -Recurse
             }
@@ -107,7 +110,7 @@ switch($language){
 
             git clone "https://$GHtoken@github.com/IUS-CS/AutoGraderConfig.git"
 
-            Copy-Item -Path "/opt/cmake/$repoName/test" `
+            Copy-Item -Path "/opt/cmake/$repoName/testing" `
                       -Destination "/tmp/AutoGraderConfig/src/$CourseType/$AssignmentName/current/tests" `
                       -Recurse
         }
@@ -130,11 +133,11 @@ switch($language){
 
         if ($StudentTestsEnabled -or $TeacherUnitTestsEnabled){
             set-location "/opt/cmake/cmake-build-debug"
-            ctest "." --output-junit "./test/reports/test_output.xml"
+            ctest "." --output-junit "./testing/reports/test_output.xml"
 
-            if (test-path "/opt/cmake/cmake-build-debug/test/reports" ){
+            if (test-path "/opt/cmake/cmake-build-debug/testing/reports" ){
                 #include <iostream>
-                Copy-Item -Path "/opt/cmake/cmake-build-debug/test/reports" `
+                Copy-Item -Path "/opt/cmake/cmake-build-debug/testing/reports" `
                           -Destination $copyToPath `
                           -Recurse
 

@@ -41,7 +41,7 @@ func CreateTextFromData(data common.AssignmentSubmissions) string {
 					strconv.Itoa(item.FailedTests.Total) + ") Completed\n")
 
 				if !item.FailedTests.Completed {
-					sb.WriteString("\t\tRequired amount of test where not completed.\n")
+					sb.WriteString("\t\tRequired amount of testing where not completed.\n")
 				}
 
 				sb.WriteString("\t\tFailed Tests: \n")
